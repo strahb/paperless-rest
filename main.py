@@ -157,6 +157,7 @@ def upload():
             response = requests.post(POST_endpoint, headers=headers, files=post)
             response.raise_for_status()  # Raise an HTTPError for bad status codes
             logging.info(f"Successfully uploaded {file}. Response: {response.content}")
+        return    
         
         
 
