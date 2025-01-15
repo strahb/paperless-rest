@@ -1,5 +1,4 @@
 import os
-import json
 from pypdf import PdfReader, PdfWriter
 from datetime import datetime
 import logging
@@ -35,11 +34,34 @@ def validate_path(path):
     try:
         if not os.path.exists(path):
             os.makedirs(path)
-            logging.info(f"Created directory: {path}")
+            logging.info(f"Created directory: {path}")      
         return True
     except Exception as e:
         logging.error(f"Error creating directory {path}: {str(e)}")
         return False
+
+def clean_output(path):
+    """Ensure the output path is empty, so as to not cause any upload conflicts"""
+    try:
+        # Get all files in the directory
+        files = [f.name for f in os.scandir(path) if f.is_file()]
+        files_len = len(files)
+        
+        print(f"Removing {files_len} existing files.")
+        
+        for file in files:
+            try:
+                file_path = os.path.join(path, file)
+                os.remove(file_path)
+                logging.info(f"{file} removed successfully.")
+            except Exception as e:
+                logging.warning(
+                    f"Error deleting {file}. The program will proceed, but it will attempt to handle the failed document. Error: {e}"
+                )
+                # Continue removing other files instead of returning early
+                continue
+    except Exception as outer_error:
+        logging.error(f"Error accessing directory {path}: {outer_error}")
 
 def split_pdf(pdf_path, output_base_dir):
     """Split PDF into individual pages."""
@@ -91,7 +113,7 @@ def rename_files(output_dir):
             logging.warning(f"No PDF files found in {output_dir}")
             return False
 
-        creation_date = datetime.now().strftime("%d-%m-%y")+1
+        creation_date = datetime.now().strftime("%d-%m-%y")
         
         for index, filename in enumerate(sorted(files), start=1):
             try:
@@ -127,7 +149,7 @@ def test_api_connection():
             return True
         else:
             logging.error(f"API Connection failed with status code: {response.status_code}")
-            logging.error(f"Response: {response.text}")
+            logging.error(f"API Response: {response.text}")
             return False
 
     except RequestException as e:
@@ -144,24 +166,29 @@ def upload():
         POST_endpoint = f"{os.getenv('API_BASE_URL')}post_document/"
 
         output_folder = os.getenv('OUTPUT_FOLDER')
-        files = [f for f in os.listdir(output_folder)]
+        files = [f for f in os.listdir(output_folder) if os.path.isfile(os.path.join(output_folder, f))]
         files = (len(files))
         _ = 1
-        print(f"\nThere are {files} files to be uploaded")
-        
+        print(f"\nThere are {files} files to be uploaded")      
+    try:        
         """The POSTing segment of the code"""
         for file in os.listdir(output_folder):
             print(f"{_:02}/{files} Uploading {file}")
             _ += 1
-            post = {'document': file}
-            response = requests.post(POST_endpoint, headers=headers, files=post)
-            response.raise_for_status()  # Raise an HTTPError for bad status codes
-            logging.info(f"Successfully uploaded {file}. Response: {response.content}")
-        return    
+            with open(f"{output_folder}/{file}", 'rb') as file_data:
+                post = {'document': (file, file_data)}
+                response = requests.post(POST_endpoint, headers=headers, files=post )
+                response.raise_for_status()  # Raise an HTTPError for bad status codes
+                logging.info(f"Successfully uploaded {file}. Response: {response.content}")
+        return
+    except RequestException as e:
+        logging.error(f"Network error during file upload: {str(e)}")
+        return False
+    except Exception as e:
+        logging.error(f"Error during file upload: {str(e)}")
+        return False
+  
         
-        
-
-
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='PDF Splitter and Renamer')
@@ -199,6 +226,10 @@ def main():
             logging.error("Failed to validate directories")
             return
         
+        # CLean output folder from any existing files
+        if clean_output(output_base_dir):
+            return
+
         # Process PDF files
         pdf_files = [f for f in os.listdir(consume_folder) if f.lower().endswith('.pdf')]
         if not pdf_files:
