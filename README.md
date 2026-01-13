@@ -1,8 +1,7 @@
 # PDF Splitter, Renamer, and Uploader
+> ℹ️ This is a bespoke script to help me manage all my paperwork at work, it is not tailored for general use, and it's a mess I know
 
-The script automatically splits, renames, and uploads the PDF pages to a defined [Paperless-NGX](https://github.com/paperless-ngx/paperless-ngx) instance.
-
----
+This script automatically splits, renames, and uploads the PDF pages to a defined [Paperless-NGX](https://github.com/paperless-ngx/paperless-ngx) instance. Now with HTTPS and further manipulation! 
 
 ## Prerequisites
 - Python 3.8 or higher
@@ -12,11 +11,4 @@ The script automatically splits, renames, and uploads the PDF pages to a defined
   - `python-dotenv`
 
 ### Environment Variables
-Use a `.env` file in the root of your project to configure the following variables:
-
-```env
-API_BASE_URL=https://your-paperless-ngx-instance.com/api/documents/
-API_TOKEN=your_api_token
-CONSUME_FOLDER=/path/to/input/folder
-OUTPUT_FOLDER=/path/to/output/folder
-```
+Use a `.env` file in the root of your project to configure your variables
