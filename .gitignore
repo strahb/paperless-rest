@@ -1,0 +1,10 @@
+consume
+output
+Archive
+.env
+.vscode/
+__pycache__/
+*.pyc
+*.pem
+*.code-workspace
+**/*.pdf
